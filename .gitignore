@@ -1,0 +1,5 @@
+venv/
+testfiles/
+jpeg_output/
+
+.DS_Store
