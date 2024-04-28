@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
+import random
+
 import csv
 
 def read_csv_file(file_path, images, labels):
@@ -18,19 +20,32 @@ file_path = 'Data/english.csv'
 images = []
 features = []
 read_csv_file(file_path, images, features)
+img_arrs = []
+
+for img in images:
+# Load and preprocess the images
+    image = tf.keras.preprocessing.image.load_img(img, color_mode="grayscale", target_size=(50, 50))
+    image_array = tf.keras.preprocessing.image.img_to_array(img)
+    image_array = image_array / 255.0  # Normalize pixel values to the range [0, 1]
+    image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
+    img_arrs.append(image_array)
+
+data = ((img_arrs, features))
+
+
 #read_csv_file(file_path_augmented, images, features)
-print(images)
+random.shuffle(data)
+
+total_length = len(data)
+
+train_length = int(0.8 * total_length)
+test_length = total_length - train_length
+
+# Split the data into training and testing sets
+train_data = data[:train_length]
+test_data = data[train_length:]
 
 
-
-image_path = "test/img001-001_c&r_b&w.jpg"
-label = 0  # Assuming label 0 corresponds to the feature of interest
-
-# Load and preprocess the image
-image = tf.keras.preprocessing.image.load_img(image_path, color_mode="grayscale", target_size=(28, 28))
-image_array = tf.keras.preprocessing.image.img_to_array(image)
-image_array = image_array / 255.0  # Normalize pixel values to the range [0, 1]
-image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
 
 # Step 2: Model Definition
 model = models.Sequential([
@@ -51,9 +66,10 @@ model.compile(optimizer='adam',
 
 # Step 4: Model Training
 # Assuming you have a dataset with features and labels
-# x_train, y_train = ...
-# x_val, y_val = ...
-model.fit(x_train, y_train, epochs=10, validation_data=(x_val, y_val))
+x_train, y_train = zip(*train_data)
+x_test, y_test = zip(*test_data)
+
+model.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
 
 # Step 5: Model Evaluation
 test_loss, test_acc = model.evaluate(x_test, y_test)
