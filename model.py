@@ -14,10 +14,11 @@ def read_csv_file(file_path, images, labels):
             labels.append(label)
 
 file_path = 'Data/english.csv'
-#file_path_augmented = 'Data/english_augmented.csv'
+file_path_augmented = 'Data/english_augmented.csv'
 images = []
 features = []
 read_csv_file(file_path, images, features)
+read_csv_file(file_path_augmented, images, features)
 
 data = []
 for img_path, label in zip(images, features):
@@ -80,7 +81,7 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 # Model Training
-model.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
+model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test))
 
 # Model Evaluation
 test_loss, test_acc = model.evaluate(x_test, y_test)
