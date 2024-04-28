@@ -1,81 +1,80 @@
-import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.preprocessing.image import img_to_array, load_img
+import os
+import cv2
 import numpy as np
+from tensorflow.keras.models import load_model
+import logging
 
-# Define your CNN model for image feature extraction
-def build_cnn_model(input_shape):
-    model = models.Sequential([
-        layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(128, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(128, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Flatten(),
-        layers.Dense(512, activation='relu')
-    ])
-    return model
+image = cv2.imread('test4.jpg')
+# Load the Keras model from the .h5 file
+model = load_model('EnglishCharacterClassifierModel.keras')
 
-# Define your RNN model for text generation
-def build_rnn_model(vocab_size):
-    model = models.Sequential([
-        layers.Embedding(vocab_size, 64),
-        layers.LSTM(512, return_sequences=True),
-        layers.LSTM(512),
-        layers.Dense(vocab_size, activation='softmax')
-    ])
-    return model
-
-# Load your trained models
-cnn_model = build_cnn_model((150, 150, 3)) # Input shape for your images
-cnn_model.load_weights('cnn_weights.h5') # Adjust this according to your saved weights file
-
-rnn_model = build_rnn_model(vocab_size) # Vocab size for your text
-rnn_model.load_weights('rnn_weights.h5') # Adjust this according to your saved weights file
-
-# Function to generate text from an image
-def generate_text_from_image(image_path, cnn_model, rnn_model, tokenizer):
-    # Load and preprocess the image
-    img = load_img(image_path, target_size=(150, 150))
-    img_array = img_to_array(img)
-    img_array = img_array.reshape((1,) + img_array.shape)
-    img_array = img_array / 255.0  # Normalize pixel values to [0, 1]
+# Function to preprocess an image
+def preprocess_image(image):
+    #grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    # Get features from CNN model
-    features = cnn_model.predict(img_array)
+    input_shape = model.input_shape[1:3]
+    resized_image = cv2.resize(gray_image, input_shape)
+    input_data = np.expand_dims(resized_image, axis=0)
+    input_data = input_data.astype('float32') / 255.0
     
-    # Generate text using RNN model
-    start_word = 'startseq'  # Start token
-    text = ''
-    for i in range(max_length):
-        # Tokenize the input sequence
-        sequence = tokenizer.texts_to_sequences([start_word])[0]
-        sequence = tf.keras.preprocessing.sequence.pad_sequences([sequence], maxlen=max_length)
-        
-        # Predict next word
-        y_pred = rnn_model.predict([features, sequence], verbose=0)
-        y_pred = np.argmax(y_pred)
-        
-        # Convert index to word
-        word = word_for_id(y_pred, tokenizer)
-        
-        # Break if we cannot map the word
-        if word is None:
-            break
-        
-        # Append as input for generating the next word
-        start_word += ' ' + word
-        
-        # Break if we predict the end of the sequence
-        if word == 'endseq':
-            break
-    
-    return start_word
+    return input_data
 
-# Example usage
-image_path = 'test_image.jpg'
-generated_text = generate_text_from_image(image_path, cnn_model, rnn_model, tokenizer)  # Provide your tokenizer here
-print("Generated text:", generated_text)
+import easyocr
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+logging.getLogger('easyocr').setLevel(logging.ERROR) 
+def predict_characters(image):
+    # Preprocess the image
+    input_data = preprocess_image(image)
+    predictions = model.predict(input_data)
+    
+    characters = [chr(np.argmax(prediction) + ord('A')) for prediction in predictions]
+    
+    return characters
+reader = easyocr.Reader(['en'])
+
+"""
+def predict_characters(image):
+    # Preprocess the image
+    input_data = preprocess_image(image)
+    predictions = model.predict(input_data)
+    
+    characters = [chr(np.argmax(prediction) + ord('A')) for prediction in predictions]
+    
+    return characters
+reader = easyocr.Reader(['en'])
+"""
+
+
+# Function to detect words from a list of characters
+def detect_words(characters, space_threshold=5):
+    words = []
+    current_word = ""
+    for char in characters:
+        if char != " ":  # If character is not a space, add it to the current word
+            current_word += char
+        else:  
+            if current_word:  
+                words.append(current_word)
+                current_word = ""  
+            # elif len(current_word) == 0 and len(words) > 0 and len(words[-1]) >= space_threshold:
+            elif len(current_word) == 0 and len(words) > 0 and len(words[-1]) >= space_threshold:
+                words.append(" ")
+    # Add the last word if it exists
+    if current_word:
+        words.append(current_word)
+    return words
+
+# Load the input image
+
+# Predict characters from the image
+#characters = predict_characters(image)
+
+# Detect words from the predicted characters
+#words = detect_words(characters)
+
+# Print the detected words
+#print("Detected Words:", words)
+result = reader.readtext(image)
+text = result[0][1]
+print("Detected Text:", text)
