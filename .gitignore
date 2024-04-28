@@ -6,6 +6,7 @@ Data/__pychache__/
 Data/cropped_resized_output/
 __pycache__
 .DS_Store
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
