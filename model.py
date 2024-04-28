@@ -2,8 +2,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 import random
-import csv
-
 import pandas as pd
 
 def read_csv_file(file_path, images, labels):
@@ -13,13 +11,12 @@ def read_csv_file(file_path, images, labels):
         images.append(image_path)
         labels.append(label)
 
-
 file_path = 'Data/english.csv'
-file_path_augmented = 'Data/english_augmented.csv'
+#file_path_augmented = 'Data/english_augmented.csv'
 images = []
 features = []
 read_csv_file(file_path, images, features)
-read_csv_file(file_path_augmented, images, features)
+#read_csv_file(file_path_augmented, images, features)
 
 data = []
 for img_path, label in zip(images, features):
@@ -64,6 +61,15 @@ y_test = np.array([label_to_index[label] for label in y_test])
 x_train = x_train.reshape(x_train.shape[0], 50, 50, 1)
 x_test = x_test.reshape(x_test.shape[0], 50, 50, 1)
 
+datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+    rotation_range=15,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.1,
+    horizontal_flip=True,
+    fill_mode='nearest')
+
 # Model Definition
 model = models.Sequential([
     layers.Conv2D(32, (3, 3), activation='relu', input_shape=(50, 50, 1)),
@@ -83,6 +89,10 @@ model.compile(optimizer='adam',
 
 # Model Training
 model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test))
+
+history = model.fit(datagen.flow(x_train, y_train, batch_size=64),
+                    epochs=20,
+                    validation_data=(x_test, y_test))
 
 # Model Evaluation
 test_loss, test_acc = model.evaluate(x_test, y_test)
