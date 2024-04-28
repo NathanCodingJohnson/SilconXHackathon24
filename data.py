@@ -10,9 +10,9 @@ def read_csv_file(file_path, images, labels):
             labels.append(label)
 
 file_path = 'Data/english.csv'
-file_path_augmented = 'Data/english_augmented.csv'
+#file_path_augmented = 'Data/english_augmented.csv'
 images = []
 features = []
 read_csv_file(file_path, images, features)
-read_csv_file(file_path, images, features)
+#read_csv_file(file_path_augmented, images, features)
 print(images)
