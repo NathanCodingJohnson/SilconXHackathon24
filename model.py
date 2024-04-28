@@ -88,10 +88,10 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 # Model Training
-model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test))
+model.fit(x_train, y_train, epochs=30, validation_data=(x_test, y_test))
 
 history = model.fit(datagen.flow(x_train, y_train, batch_size=64),
-                    epochs=20,
+                    epochs=100,
                     validation_data=(x_test, y_test))
 
 # Model Evaluation
