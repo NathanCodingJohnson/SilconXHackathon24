@@ -1,100 +1,82 @@
+import os
+import cv2
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers, models
-import random
-import pandas as pd
+from tensorflow.keras.models import load_model
+import logging
 
-def read_csv_file(file_path, images, labels):
-    df = pd.read_csv(file_path)
-    for index, row in df.iterrows():
-        image_path, label = row
-        images.append(image_path)
-        labels.append(label)
+image = cv2.imread('test4.jpg')
+# Load the Keras model from the .h5 file
+model = load_model('EnglishCharacterClassifierModel.keras')
 
-file_path = 'Data/english.csv'
-#file_path_augmented = 'Data/english_augmented.csv'
-images = []
-features = []
-read_csv_file(file_path, images, features)
-#read_csv_file(file_path_augmented, images, features)
+# Function to preprocess an image
+def preprocess_image(image):
+    #grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    input_shape = model.input_shape[1:3]
+    resized_image = cv2.resize(gray_image, input_shape)
+    input_data = np.expand_dims(resized_image, axis=0)
+    input_data = input_data.astype('float32') / 255.0
+    
+    return input_data
 
-data = []
-for img_path, label in zip(images, features):
-    # Load and preprocess the images
-    image = tf.keras.preprocessing.image.load_img(img_path, color_mode="grayscale", target_size=(50, 50))
-    image_array = tf.keras.preprocessing.image.img_to_array(image)
-    image_array = image_array / 255.0  # Normalize pixel values to the range [0, 1]
-    data.append((image_array, label))
+import easyocr
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+logging.getLogger('easyocr').setLevel(logging.ERROR) 
+def predict_characters(image):
+    # Preprocess the image
+    input_data = preprocess_image(image)
+    predictions = model.predict(input_data)
+    
+    characters = [chr(np.argmax(prediction) + ord('A')) for prediction in predictions]
+    
+    return characters
 
-# Shuffle the data
-random.shuffle(data)
+"""
+def predict_characters(image):
+    # Preprocess the image
+    input_data = preprocess_image(image)
+    predictions = model.predict(input_data)
+    
+    characters = [chr(np.argmax(prediction) + ord('A')) for prediction in predictions]
+    
+    return characters
+reader = easyocr.Reader(['en'])
+"""
 
-total_length = len(data)
 
-train_length = int(0.8 * total_length)
-test_length = total_length - train_length
+# Function to detect words from a list of characters
+def detect_words(characters, space_threshold=5):
+    words = []
+    current_word = ""
+    for char in characters:
+        if char != " ":  # If character is not a space, add it to the current word
+            current_word += char
+        else:  
+            if current_word:  
+                words.append(current_word)
+                current_word = ""  
+            # elif len(current_word) == 0 and len(words) > 0 and len(words[-1]) >= space_threshold:
+            elif len(current_word) == 0 and len(words) > 0 and len(words[-1]) >= space_threshold:
+                words.append(" ")
+    # Add the last word if it exists
+    if current_word:
+        words.append(current_word)
+    return words
 
-# Split the data into training and testing sets
-train_data = data[:train_length]
-test_data = data[train_length:]
+# Load the input image
 
-# Prepare training and testing data
-x_train, y_train = zip(*train_data)
-x_test, y_test = zip(*test_data)
+# Predict characters from the image
+#characters = predict_characters(image)
 
-# Convert data to numpy arrays
-x_train = np.array(x_train)
-x_test = np.array(x_test)
-y_train = np.array(y_train)
-y_test = np.array(y_test)
+# Detect words from the predicted characters
+#words = detect_words(characters)
 
-# Check unique label values
-unique_labels = np.unique(y_train)
-print('Unique labels:', unique_labels)
-
-# Convert labels to integer indices
-label_to_index = {label: index for index, label in enumerate(unique_labels)}
-y_train = np.array([label_to_index[label] for label in y_train])
-y_test = np.array([label_to_index[label] for label in y_test])
-
-# Reshape the input data for CNN (add channel dimension)
-x_train = x_train.reshape(x_train.shape[0], 50, 50, 1)
-x_test = x_test.reshape(x_test.shape[0], 50, 50, 1)
-
-datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-    rotation_range=10,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    shear_range=0.1,
-    zoom_range=0.1,
-    fill_mode='nearest')
-
-# Model Definition
-model = models.Sequential([
-    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(50, 50, 1)),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(len(unique_labels), activation='softmax')
-])
-
-# Model Compilation
-model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-
-# Model Training
-model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test))
-
-history = model.fit(datagen.flow(x_train, y_train, batch_size=64),
-                    epochs=50,
-                    validation_data=(x_test, y_test))
-
-# Model Evaluation
-test_loss, test_acc = model.evaluate(x_test, y_test)
-print('Test accuracy:', test_acc)
-
-model.save('EnglishCharacterClassifierModel.keras')
+# Print the detected words
+#print("Detected Words:", words)
+def process_image(image_file):
+    image = cv2.imread(image_file)
+    reader = easyocr.Reader(['en'])
+    result = reader.readtext(image)
+    detected_text = result[0][1]
+    return detected_text
