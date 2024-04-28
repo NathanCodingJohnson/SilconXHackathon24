@@ -1,5 +1,7 @@
 venv/
 testfiles/
 jpeg_output/
-
+Data/__pychache__/
+Data/cropped_resized_output/
+__pycache__
 .DS_Store
