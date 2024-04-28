@@ -3,15 +3,9 @@ import cv2
 import numpy as np
 import easyocr
 import time
+from model import *
 
 app = Flask(__name__)
-reader = easyocr.Reader(['en'])
-
-def process_image(image_file):
-    image = cv2.imdecode(np.frombuffer(image_file.read(), np.uint8), cv2.IMREAD_COLOR)
-    result = reader.readtext(image)
-    detected_text = result[0][1] if result else "No text detected"
-    return detected_text
 
 def debounce(func, wait):
     last_call = 0

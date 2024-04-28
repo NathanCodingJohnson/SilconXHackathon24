@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 import logging
+import re
 
 image = cv2.imread('test4.jpg')
 # Load the Keras model from the .h5 file
@@ -74,9 +75,42 @@ def detect_words(characters, space_threshold=5):
 
 # Print the detected words
 #print("Detected Words:", words)
+reader = easyocr.Reader(['en'])
 def process_image(image_file):
-    image = cv2.imread(image_file)
-    reader = easyocr.Reader(['en'])
+    image = cv2.imdecode(np.frombuffer(image_file.read(), np.uint8), cv2.IMREAD_COLOR)
     result = reader.readtext(image)
-    detected_text = result[0][1]
-    return detected_text
+    detected_text = result[0][1] if result else "No text detected"
+    cleaned_text = re.sub(r'[^a-zA-Z0-9\s]', '', detected_text)
+    return cleaned_text
+
+def remove_noise(image):
+    # Apply Gaussian blur
+    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
+    return blurred_image
+
+def convert_to_grayscale(image):
+    """Converts an image to grayscale."""
+    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+def resize_image(image, width=None, height=None, interpolation=cv2.INTER_AREA):
+    """Resizes an image to the specified width and height."""
+    dim = None
+    (h, w) = image.shape[:2]
+
+    if width is None and height is None:
+        return image
+    
+    if width is None:
+        r = height / float(h)
+        dim = (int(w * r), height)
+    else:
+        r = width / float(w)
+        dim = (width, int(h * r))
+
+    resized = cv2.resize(image, dim, interpolation=interpolation)
+    return resized
+
+def threshold_image(image, threshold_value=127, max_value=255, threshold_type=cv2.THRESH_BINARY):
+    """Applies a threshold to the image."""
+    _, thresholded = cv2.threshold(image, threshold_value, max_value, threshold_type)
+    return thresholded
