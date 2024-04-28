@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Text Extractor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="padding-top: 100px;">
+        <h1>Image Text Extractor</h1>
+        <form id="upload-form" enctype="multipart/form-data" action="/process_image" method="POST">
+            <label for="image-input">Choose Image</label>
+            <input type="file" id="image-input" name="image" accept="image/*" required>
+            <button type="submit">Enter</button>
+        </form>
+        <div id="image-preview"></div>
+        <p id="detected-text"></p>
+    </div>
+
+    <!-- New box for additional information -->
+    <div class="additional-info" style="padding-top: 20px;">
+        <h2>How to Use</h2>
+        <p>To use this image text extractor, simply choose an image containing text using the "Choose Image" button above. Once selected, click the "Enter" button to process the image. The extracted text will be displayed below the image.</p>
+        <img src="static/Thumbs_Up.png" alt="How to Use Image" style="width: 300px;">
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            fetch('/process_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('detected-text').innerText = data.text;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+        
+        document.getElementById('image-input').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            var imagePreview = document.getElementById('image-preview');
+            imagePreview.innerHTML = '';
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.width = 200; // Set image width for preview
+            imagePreview.appendChild(img);
+        });
+    </script>
+</body>
+</html>
