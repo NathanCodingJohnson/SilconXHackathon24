@@ -62,12 +62,11 @@ x_train = x_train.reshape(x_train.shape[0], 50, 50, 1)
 x_test = x_test.reshape(x_test.shape[0], 50, 50, 1)
 
 datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-    rotation_range=15,
+    rotation_range=10,
     width_shift_range=0.1,
     height_shift_range=0.1,
     shear_range=0.1,
     zoom_range=0.1,
-    horizontal_flip=True,
     fill_mode='nearest')
 
 # Model Definition
@@ -88,12 +87,14 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 # Model Training
-model.fit(x_train, y_train, epochs=30, validation_data=(x_test, y_test))
+model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test))
 
 history = model.fit(datagen.flow(x_train, y_train, batch_size=64),
-                    epochs=100,
+                    epochs=50,
                     validation_data=(x_test, y_test))
 
 # Model Evaluation
 test_loss, test_acc = model.evaluate(x_test, y_test)
 print('Test accuracy:', test_acc)
+
+model.save('EnglishCharacterClassifierModel.keras')
